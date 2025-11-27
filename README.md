@@ -94,24 +94,6 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 
 ### Setup MCP Servers
 
-Configure the MCP servers to work with this blueprint:
-
-```bash
-# Add Claude Flow MCP (REQUIRED)
-# This enables multi-agent orchestration
-Tell Claude Code to make sure the AgentDB Reasoning bank and Claude Flow Memory system are working
-
-# Add Serena MCP (REQUIRED for code analysis)
-# This enables symbol-level code navigation
-Tell Claude Code to get the Serena MCP server working
-
-# Add ruv-swarm (RECOMMENDED for enhanced coordination)
-If ruv-swarm isn't working, tell claude code to get it working.
-
-# Optional: Cloud-based features
-claude mcp add flow-nexus npx flow-nexus@latest mcp start
-```
-
 ### Verify and Initialize Systems
 
 After adding MCP servers, you need to ensure all systems are properly initialized and working:
@@ -1751,5 +1733,6 @@ For support and questions:
 **Remember:** Always include `docs2/claudeflow.md` in your prompts and update file paths in `agent_headers_extract.txt` to match your project structure.
 
 **Happy Building! 🚀**
+
 
 
