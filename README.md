@@ -29,6 +29,7 @@ This repository extends Claude Flow with:
 - [Critical Setup Requirements](#-critical-setup-requirements)
 - [Core Components](#-core-components)
 - [PRD to Spec Conversion](#-prd-to-spec-conversion)
+- [AI-Driven File Modularization](#-ai-driven-file-modularization)
 - [Universal Search Algorithm (USACF)](#-universal-search-algorithm-usacf)
 - [Specialized Agent Systems](#-specialized-agent-systems)
 - [Serena MCP Integration](#-serena-mcp-integration)
@@ -590,6 +591,248 @@ implement using:
 5. Claude Flow for agent coordination
 
 Store specs in /specs/ and implementation in /src/"
+```
+
+---
+
+## 🔧 AI-Driven File Modularization
+
+### What is File Modularization?
+
+The **AI-Driven File Modularization Prompt** (`docs2/modulateprompt.md`) is a comprehensive, language-agnostic framework for refactoring large, monolithic files into clean, maintainable modular architectures while maintaining **100% backwards compatibility**.
+
+### Why Use File Modularization?
+
+Large files become unmaintainable over time. This framework helps you:
+
+✅ **Enforce size limits** - Every resulting file stays under configurable line limit (default: 500 lines)
+✅ **Maintain backwards compatibility** - All existing imports and APIs continue to work
+✅ **Improve code quality** - Lower complexity, higher cohesion, better testability
+✅ **Language-agnostic** - Works with 15+ languages (Python, TypeScript, Go, Rust, Java, etc.)
+✅ **Systematic approach** - 5-phase process from analysis to validation
+✅ **Zero breaking changes** - Existing tests pass without modification
+
+### Supported Languages
+
+Python, TypeScript/JavaScript, Go, Rust, Java, Kotlin, Ruby, PHP, C#, Swift, Scala, Elixir, Clojure, Haskell, C/C++
+
+### When to Use Modularization
+
+**Use this framework when:**
+
+✅ You have a file exceeding your team's line limit (typically 500+ lines)
+✅ A file contains multiple responsibilities (violates Single Responsibility Principle)
+✅ Code review feedback identifies complexity or maintenance concerns
+✅ Onboarding new developers struggle to understand a large file
+✅ Testing requires complex setup due to mixed concerns
+✅ Refactoring is needed but you can't afford breaking changes
+
+**Don't use for:**
+
+❌ Files already under the line limit and well-organized
+❌ Prototype or throwaway code
+❌ Files with a single, cohesive responsibility
+❌ When you can afford breaking changes (simpler refactoring available)
+
+### The 5-Phase Process
+
+```
+Phase 1: Deep Analysis (Understanding)
+  └─ File analysis, dependencies, usage, complexity metrics
+
+Phase 2: Modularization Strategy (Planning)
+  └─ Identify cohesive modules, design structure, ensure compatibility
+
+Phase 3: Implementation Plan (Execution)
+  └─ Step-by-step refactoring with test checkpoints
+
+Phase 4: Output Specification
+  └─ Generate analysis docs, architecture diagrams, test suites
+
+Phase 5: Quality Assurance
+  └─ Verify metrics, backwards compatibility, and improvements
+```
+
+### How to Use Modularization
+
+**Step 1: Identify Large Files**
+```bash
+# Find files over 500 lines (Unix/Linux/Mac)
+find . -name "*.py" -exec wc -l {} + | sort -rn | head -20
+
+# PowerShell (Windows)
+Get-ChildItem -Recurse -Filter "*.py" | ForEach-Object {
+  [PSCustomObject]@{Lines=(Get-Content $_.FullName).Count; File=$_.FullName}
+} | Sort-Object Lines -Descending | Select-Object -First 20
+```
+
+**Step 2: Configure the Prompt**
+```
+"Read docs2/modulateprompt.md and refactor the following file:
+
+TARGET_FILE: src/services/user_service.py
+MAX_LINES: 500
+LANGUAGE: python
+TEST_COMMAND: pytest
+LINT_COMMAND: pylint
+TYPE_CHECK_COMMAND: mypy
+
+Follow all 5 phases and ensure 100% backwards compatibility."
+```
+
+**Step 3: Execute Refactoring**
+
+The AI will:
+1. Analyze the file's purpose, dependencies, and usage
+2. Design a modular structure following language conventions
+3. Create a step-by-step refactoring plan with test checkpoints
+4. Implement the refactoring incrementally
+5. Validate backwards compatibility and improvements
+
+**Step 4: Review Outputs**
+
+You'll receive:
+- **Analysis document** - Understanding of current state
+- **Architecture document** - Module breakdown with diagrams
+- **Refactoring plan** - Step-by-step implementation guide
+- **Code implementation** - All new modular files
+- **Test suite** - Backwards compatibility and unit tests
+- **Validation report** - Before/after metrics
+
+### Example: Modularizing a 1200-line File
+
+**Before:**
+```
+src/api/routes/classify.py  (1200 lines) ❌
+```
+
+**After:**
+```
+src/api/routes/classify/
+├── __init__.py                      # ~50 lines  ✅ Facade
+├── router.py                        # ~150 lines ✅ Routes
+├── handlers/
+│   ├── __init__.py                  # ~15 lines  ✅
+│   ├── primary_handler.py           # ~200 lines ✅ Main logic
+│   └── validation_handler.py        # ~100 lines ✅ Validation
+├── services/
+│   ├── __init__.py                  # ~10 lines  ✅
+│   ├── classification_service.py    # ~300 lines ✅ Business logic
+│   └── preprocessing_service.py     # ~200 lines ✅ Data prep
+├── repositories/
+│   ├── __init__.py                  # ~10 lines  ✅
+│   └── data_repository.py           # ~180 lines ✅ Data access
+├── models/
+│   ├── __init__.py                  # ~20 lines  ✅
+│   ├── request_models.py            # ~150 lines ✅ Input models
+│   └── response_models.py           # ~120 lines ✅ Output models
+└── utils/
+    ├── __init__.py                  # ~10 lines  ✅
+    └── helpers.py                   # ~200 lines ✅ Utilities
+
+All files under 500 lines ✅
+Backwards compatible ✅
+All tests passing ✅
+```
+
+### Backwards Compatibility Guarantee
+
+**Old imports still work:**
+```python
+# OLD (still works - facades to new modules)
+from src.api.routes.classify import classify_image, validate_input
+
+# NEW (preferred - direct module access)
+from src.api.routes.classify.handlers import classify_image
+from src.api.routes.classify.utils import validate_input
+```
+
+**The original file becomes a facade:**
+```python
+# src/api/routes/classify/__init__.py (now ~50 lines)
+from .handlers.primary_handler import classify_image
+from .utils.helpers import validate_input
+
+__all__ = ['classify_image', 'validate_input']
+```
+
+### Quality Improvements
+
+**Code Quality Metrics:**
+- **Modularity:** 1 file → 15 files, each < 500 lines
+- **Complexity:** Cyclomatic complexity reduced by 40%
+- **Testability:** Unit tests increased by 200%
+- **Maintainability:** Clear separation of concerns
+
+**Verified by:**
+- ✅ All existing tests pass without modification
+- ✅ No performance regression
+- ✅ Linting passes
+- ✅ Type checking passes
+- ✅ Code coverage maintained or increased
+
+### Language-Specific Conventions
+
+The framework adapts to your language's idioms:
+
+**Python:** Uses `__init__.py` for package structure
+**TypeScript/JavaScript:** Uses `index.ts` for barrel exports
+**Go:** Uses package-level files (no subdirectories for small modules)
+**Rust:** Uses `mod.rs` and `pub use` for re-exports
+**Java/Kotlin:** Uses package structure with proper visibility
+
+### Integration with Claude Flow
+
+Use modularization with agent coordination:
+
+```
+"Read docs2/modulateprompt.md and refactor src/large_file.py.
+
+Use these agents:
+1. code-analyzer - Analyze file structure and dependencies
+2. system-architect - Design modular architecture
+3. coder - Implement refactoring step-by-step
+4. tester - Validate backwards compatibility
+5. reviewer - Review code quality improvements
+
+Store all outputs in /docs/modularization/ and ensure all files under 500 lines."
+```
+
+### Success Criteria
+
+The refactoring is successful when:
+
+1. ✅ Original file reduced to < 100 lines (facade only)
+2. ✅ All new files under configured line limit (default: 500)
+3. ✅ Zero breaking changes (100% backwards compatible)
+4. ✅ All tests pass (existing + new tests)
+5. ✅ Code quality metrics improved
+6. ✅ No performance degradation
+7. ✅ Clear module boundaries
+8. ✅ Documentation updated
+9. ✅ Team review approved
+10. ✅ Can deploy without downtime
+
+### Quick Start Example
+
+```
+"I have a 1500-line Python file that needs refactoring.
+
+Please:
+1. Read docs2/modulateprompt.md
+2. Analyze src/services/large_service.py
+3. Design a modular structure with max 500 lines per file
+4. Create refactoring plan with test checkpoints
+5. Implement the refactoring ensuring backwards compatibility
+6. Generate all documentation and validation reports
+
+Configuration:
+- MAX_LINES: 500
+- TEST_COMMAND: pytest
+- LINT_COMMAND: pylint
+- TYPE_CHECK_COMMAND: mypy
+
+Store outputs in /docs/modularization/large_service/"
 ```
 
 ---
