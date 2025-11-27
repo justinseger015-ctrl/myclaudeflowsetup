@@ -1318,28 +1318,7 @@ Note: Update file paths from /home/cabdru/clag/ to /my/actual/path/ before using
 "Help me with this project."
 ```
 
-### 2. Batch Operations in Single Messages
-
-**DO THIS:**
-```javascript
-[Single Message]:
-  Task("agent1", ..., "type1")
-  Task("agent2", ..., "type2")
-  TodoWrite({ todos: [...5+ todos...] })
-  Write("file1.js", content1)
-  Write("file2.js", content2)
-  Bash("mkdir -p src/{components,utils}")
-```
-
-**NOT THIS:**
-```javascript
-[Message 1]: Task("agent1")
-[Message 2]: Task("agent2")
-[Message 3]: TodoWrite
-[Message 4]: Write file
-```
-
-### 3. Organize Files Properly
+### 2. Organize Files Properly
 
 **DO THIS:**
 ```
@@ -1357,7 +1336,7 @@ Note: Update file paths from /home/cabdru/clag/ to /my/actual/path/ before using
 /notes.txt            ❌ Root folder clutter
 ```
 
-### 4. Use Appropriate Agent Systems
+### 3. Use Appropriate Agent Systems
 
 **Business Strategy** → `business-research` agents
 **Security Testing** → `pentestsystem` agents
@@ -1366,7 +1345,7 @@ Note: Update file paths from /home/cabdru/clag/ to /my/actual/path/ before using
 **Code Analysis** → Serena MCP tools
 **Complex Analysis** → USACF framework
 
-### 5. Document Agent Coordination
+### 4. Document Agent Coordination
 
 ```
 "Coordinate these agents:
@@ -1377,7 +1356,7 @@ Note: Update file paths from /home/cabdru/clag/ to /my/actual/path/ before using
 Use Claude Flow memory for inter-agent communication."
 ```
 
-### 6. Leverage Memory Coordination
+### 5. Leverage Memory Coordination
 
 ```bash
 # Agents store findings in memory
@@ -1387,7 +1366,7 @@ npx claude-flow memory store --namespace "research/findings" --key "gap-analysis
 npx claude-flow memory retrieve --key "research/findings/gap-analysis"
 ```
 
-### 7. Use Confidence Scoring (USACF)
+### 6. Use Confidence Scoring (USACF)
 
 ```
 "For all findings, include:
@@ -1568,6 +1547,7 @@ Report any errors and fix them."
 2. Check agent file format (.md files with YAML frontmatter)
 3. Update paths in agent_headers_extract.txt if needed
 4. Explicitly reference: "Use agents from .claude/agents/phdresearch/"
+5. Restart Claude Code. If you make new agents you have to restart before they are recognized.
 ```
 
 ### Issue: Serena Tools Not Working
@@ -1630,6 +1610,9 @@ npx claude-flow memory store --namespace "session/context" --key "current-state"
 
 # Retrieve on restart
 npx claude-flow memory retrieve --key "session/context/current-state"
+
+Use this prompt: Pause & Restore - Save state, create handoff document - Outcome: Resume later with full context preserved
+Strategic session break - create handoff documents so I can resume with fresh token budget
 ```
 
 ---
@@ -1638,10 +1621,7 @@ npx claude-flow memory retrieve --key "session/context/current-state"
 
 ### Reporting Issues
 
-1. Check existing issues at [GitHub Issues](https://github.com/ChrisRoyse/myclaudeflowsetup/issues)
-2. Provide reproduction steps
-3. Include Claude Code version, OS, and error messages
-4. Attach relevant log files
+1. Tell Claude Code to fix it.
 
 ### Suggesting Improvements
 
@@ -1649,13 +1629,6 @@ npx claude-flow memory retrieve --key "session/context/current-state"
 - **USACF Enhancements:** Propose improvements to search methodology
 - **Documentation:** Fix errors or add clarifications
 - **Examples:** Share successful agent coordination patterns
-
-### Pull Request Guidelines
-
-1. Update `agent_headers_extract.txt` if adding agents
-2. Document new features in README
-3. Test with Claude Code and Serena MCP
-4. Follow existing code style and structure
 
 ---
 
@@ -1672,26 +1645,8 @@ npx claude-flow memory retrieve --key "session/context/current-state"
 
 ### Community
 
-- **Discord:** Join Claude Flow community
-- **Reddit:** r/ClaudeAI, r/ClaudeCode
-- **Twitter:** Follow @anthropics
-
-### Related Projects
-
-- **Flow Nexus:** Cloud-based swarm deployment
-- **AgentDB:** Vector database for agent memory
-- **Hive Mind:** Advanced collective intelligence
-
----
-
-## 📄 License
-
-This blueprint is provided as-is for educational and development purposes. Individual components may have their own licenses:
-
-- **Claude Flow:** MIT License
-- **Serena MCP:** MIT License
-- **This Blueprint:** MIT License
-
+- **LinkedIn:** https://www.linkedin.com/in/christopher-royse-b624b596/
+  
 ---
 
 ## 🙏 Acknowledgments
@@ -1725,14 +1680,13 @@ For support and questions:
 1. **Read docs2/claudeflow.md** - Most questions answered here
 2. **Check USACF docs** - `docs2/usacfsearches.md`
 3. **Review agent headers** - `docs2/agent_headers_extract.txt`
-4. **GitHub Issues** - Report bugs and request features
-5. **Community Forums** - Ask questions and share patterns
 
 ---
 
 **Remember:** Always include `docs2/claudeflow.md` in your prompts and update file paths in `agent_headers_extract.txt` to match your project structure.
 
 **Happy Building! 🚀**
+
 
 
 
