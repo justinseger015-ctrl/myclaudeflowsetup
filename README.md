@@ -214,7 +214,7 @@ The `docs2/claudeflow.md` file contains the **Universal Development Guide** with
 
 ### 2. File Path Updates Required
 
-The `agent_headers_extract.txt` file contains headers for all 54+ PhD-level agents, but uses placeholder paths:
+The `agent_headers_extract.txt` file contains headers for all 43+ PhD research agents, but uses placeholder paths:
 
 **⚠️ UPDATE THESE PATHS:**
 
