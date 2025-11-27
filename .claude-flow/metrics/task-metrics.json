@@ -6,5 +6,29 @@
     "duration": 22.886723000000018,
     "timestamp": 1764234213245,
     "metadata": {}
+  },
+  {
+    "id": "cmd-memory-1764235145192",
+    "type": "memory",
+    "success": true,
+    "duration": 924.891615,
+    "timestamp": 1764235146117,
+    "metadata": {}
+  },
+  {
+    "id": "cmd-memory-1764235147551",
+    "type": "memory",
+    "success": true,
+    "duration": 283.90437,
+    "timestamp": 1764235147835,
+    "metadata": {}
+  },
+  {
+    "id": "cmd-memory-1764235160442",
+    "type": "memory",
+    "success": true,
+    "duration": 308.684624,
+    "timestamp": 1764235160751,
+    "metadata": {}
   }
 ]
