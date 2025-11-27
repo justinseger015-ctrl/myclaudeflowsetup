@@ -28,6 +28,7 @@ This repository extends Claude Flow with:
 - [Quick Start](#-quick-start)
 - [Critical Setup Requirements](#-critical-setup-requirements)
 - [Core Components](#-core-components)
+- [PRD to Spec Conversion](#-prd-to-spec-conversion)
 - [Universal Search Algorithm (USACF)](#-universal-search-algorithm-usacf)
 - [Specialized Agent Systems](#-specialized-agent-systems)
 - [Serena MCP Integration](#-serena-mcp-integration)
@@ -304,6 +305,292 @@ The USACF framework provides:
 - **Section 3**: Risk analysis (FMEA, edge cases, vulnerabilities)
 - **Section 4**: Synthesis (opportunity generation, optimization)
 - **Section 5**: Implementation planning
+
+---
+
+## 📝 PRD to Spec Conversion
+
+### What is the PRD to Spec Framework?
+
+The **AI-Agent Specification Development Guide** (`docs2/prdtospec.md`) is a comprehensive framework for translating Product Requirements Documents (PRDs) into **machine-executable specifications** that AI agents can autonomously implement.
+
+### Why Use PRD to Spec?
+
+Traditional PRDs are written for humans and contain ambiguity. AI agents need:
+
+✅ **Explicit structure** - XML tags and clear hierarchies
+✅ **Traceable requirements** - Unique IDs (REQ-XXX-01) linking code to intent
+✅ **Unambiguous language** - No "fast," "user-friendly," or vague terms
+✅ **Edge cases documented** - What happens when things fail
+✅ **Self-contained context** - Agents can pick up work with zero prior knowledge
+✅ **Testable criteria** - Clear validation and acceptance tests
+
+**Traditional approach:**
+```
+❌ "The login should be secure and fast"
+❌ "Users should have a good experience"
+❌ "Handle errors appropriately"
+```
+
+**PRD to Spec approach:**
+```xml
+✅ <requirement id="REQ-AUTH-01">
+     Session tokens must be JWT with 24-hour expiration
+   </requirement>
+✅ <requirement id="REQ-AUTH-02">
+     API response time must be < 200ms p95
+   </requirement>
+✅ <error id="ERR-AUTH-01" http_code="401">
+     Invalid credentials: "Email or password is incorrect"
+   </error>
+```
+
+### The Specification Hierarchy
+
+Specifications exist in 5 levels:
+
+```
+Level 1: Constitution (immutable project rules)
+  ↓
+Level 2: Functional Specifications (what to build)
+  ↓
+Level 3: Technical Specifications (how to build it)
+  ↓
+Level 4: Task Specifications (atomic work units)
+  ↓
+Level 5: Context Files (live project state)
+```
+
+### When to Use PRD to Spec
+
+**Use this framework when:**
+
+✅ Starting a new feature or system from a PRD
+✅ Building something AI agents will implement autonomously
+✅ Need traceability from code back to requirements
+✅ Working on complex projects requiring multiple AI sessions
+✅ Need to onboard new team members or AI agents quickly
+✅ Compliance or audit trails are important
+
+**Don't use for:**
+
+❌ Quick bug fixes or trivial changes
+❌ Exploratory prototyping
+❌ Human-only development (no AI agents involved)
+❌ Projects with constantly changing requirements
+
+### How to Use PRD to Spec
+
+**Step 1: Read the Framework**
+```
+"Please read docs2/prdtospec.md to understand the AI-Agent Specification
+Development Guide framework."
+```
+
+**Step 2: Analyze Your PRD**
+```
+"I have a PRD for [FEATURE/PROJECT]. Please use the PRD Decomposition Template
+from docs2/prdtospec.md to:
+
+1. Extract user types and journeys
+2. Identify functional domains
+3. Assign requirement IDs (REQ-XXX-##)
+4. Surface edge cases and error states
+5. Extract non-functional requirements
+
+Store the analysis in /specs/prd-analysis.md"
+```
+
+**Step 3: Create Functional Specifications**
+```
+"Using the PRD analysis, create functional specifications following the
+Functional Specification Template from docs2/prdtospec.md:
+
+1. Write user stories with acceptance criteria
+2. Define requirements with traceability
+3. Document edge cases and error states
+4. Create test plan
+
+Store in /specs/functional/[domain].md"
+```
+
+**Step 4: Create Technical Specifications**
+```
+"Create technical specifications using the Technical Specification Template:
+
+1. Define architecture with Mermaid diagrams
+2. Create data models with constraints
+3. Define API contracts with all response codes
+4. Specify component contracts
+
+Store in /specs/technical/[component].md"
+```
+
+**Step 5: Create Task Specifications**
+```
+"Break the technical spec into atomic tasks using the Task Specification Template:
+
+1. Create task specs with pseudo-code
+2. Define dependencies between tasks
+3. Establish validation criteria
+4. Specify test commands
+
+Store in /specs/tasks/TASK-XXX-001.md"
+```
+
+**Step 6: Let AI Agents Implement**
+```
+"Implement TASK-AUTH-001 following the Agent Workflow Protocol from prdtospec.md:
+
+1. Read .ai/activeContext.md
+2. Read specs/constitution.md
+3. Read the task spec
+4. Propose pseudo-code
+5. Wait for approval
+6. Implement with tests
+7. Update context files"
+```
+
+### Complete Example Workflow
+
+```
+User: "I have a PRD for a new authentication system. Help me create specs."
+
+Step 1 - PRD Analysis:
+"Read docs2/prdtospec.md section 2.2 and analyze my PRD using the
+PRD Decomposition Template. Extract user types, journeys, requirements
+with IDs, and edge cases."
+
+Step 2 - Create Constitution:
+"Create specs/constitution.md using the Constitution File template from
+prdtospec.md section 3.2. Include our tech stack (Node.js, PostgreSQL),
+coding standards, anti-patterns, and security requirements."
+
+Step 3 - Functional Spec:
+"Create specs/functional/auth.md using the Functional Specification Template
+(section 3.3). Include user stories US-AUTH-01 through US-AUTH-05, requirements
+REQ-AUTH-01 through REQ-AUTH-15, edge cases, and test plan."
+
+Step 4 - Technical Spec:
+"Create specs/technical/auth.md using the Technical Specification Template
+(section 3.4). Include sequence diagrams, data models for User and Session
+tables, API contracts for /auth/register and /auth/login, and component
+contracts for AuthService."
+
+Step 5 - Task Breakdown:
+"Break the auth spec into tasks using the Task Specification Template
+(section 3.5):
+- TASK-AUTH-001: Registration endpoint
+- TASK-AUTH-002: Login endpoint
+- TASK-AUTH-003: Email verification
+Each with dependencies, pseudo-code, and validation criteria."
+
+Step 6 - Implementation:
+"Implement TASK-AUTH-001 following the Agent Workflow Protocol (section 5.1).
+Read the constitution, functional spec, technical spec, and task spec.
+Propose pseudo-code, then implement with tests."
+```
+
+### Directory Structure for Specs
+
+```
+project-root/
+├── .ai/                          # AI context and memory
+│   ├── activeContext.md          # Current session state
+│   ├── decisionLog.md            # Architectural decisions
+│   └── progress.md               # Roadmap completion status
+├── specs/
+│   ├── constitution.md           # Immutable project rules
+│   ├── functional/
+│   │   ├── _index.md             # Manifest of all specs
+│   │   ├── auth.md
+│   │   ├── users.md
+│   │   └── [domain].md
+│   ├── technical/
+│   │   ├── _index.md
+│   │   ├── architecture.md
+│   │   ├── data-models.md
+│   │   └── api-contracts.md
+│   └── tasks/
+│       ├── _index.md
+│       └── TASK-XXX-001.md
+```
+
+### Key Benefits
+
+**For AI Agents:**
+- 🎯 Zero ambiguity - every requirement is explicit
+- 🔗 Full traceability - REQ IDs link code to business intent
+- 💾 Context persistence - work continues across sessions
+- ✅ Self-verification - built-in validation criteria
+
+**For Development Teams:**
+- 📊 Clear roadmap - task breakdown with dependencies
+- 🔍 Audit trail - every decision documented
+- 🤝 Easy onboarding - comprehensive documentation
+- 🧪 Testability - acceptance criteria pre-defined
+
+**For Project Success:**
+- ⚡ Faster development - AI agents work autonomously
+- 🎨 Consistency - constitution enforces standards
+- 🛡️ Quality gates - human review at critical points
+- 📈 Scalability - methodology works for any project size
+
+### Templates Quick Reference
+
+**Minimal Viable Spec** (Simple features):
+```xml
+<feature_spec id="FEAT-001">
+  <title>Feature Name</title>
+  <requirements>
+    <req id="REQ-001">Specific requirement</req>
+  </requirements>
+  <acceptance_criteria>
+    - Given X, when Y, then Z
+  </acceptance_criteria>
+</feature_spec>
+```
+
+**Bug Fix Spec**:
+```xml
+<bug_spec id="BUG-001">
+  <current_behavior>What's broken</current_behavior>
+  <expected_behavior>What should happen</expected_behavior>
+  <reproduction_steps>How to reproduce</reproduction_steps>
+  <root_cause>Why it's broken</root_cause>
+  <fix_requirements>How to fix it</fix_requirements>
+</bug_spec>
+```
+
+### Common Pitfalls (from Appendix B)
+
+Before finalizing specs, check:
+
+- [ ] No vague language ("fast" → "< 200ms p95")
+- [ ] Failure modes documented for all operations
+- [ ] Valid input ranges specified
+- [ ] Permissions/authorization requirements clear
+- [ ] Empty/null data behavior defined
+- [ ] All requirements have test cases
+- [ ] Time zones specified where relevant
+- [ ] Internationalization addressed
+
+### Integration with Claude Flow
+
+The PRD to Spec framework integrates seamlessly with this blueprint:
+
+```
+"Create specifications from my PRD following docs2/prdtospec.md, then
+implement using:
+
+1. phdresearch agents for documentation quality
+2. business-research agents for requirement validation
+3. USACF framework for gap analysis
+4. Serena MCP for precise implementation
+5. Claude Flow for agent coordination
+
+Store specs in /specs/ and implementation in /src/"
+```
 
 ---
 
