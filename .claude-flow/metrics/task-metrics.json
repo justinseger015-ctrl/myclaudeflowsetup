@@ -1,50 +1,10 @@
 [
   {
-    "id": "cmd-hooks-1764234213222",
+    "id": "cmd-hooks-1764239611328",
     "type": "hooks",
     "success": true,
-    "duration": 22.886723000000018,
-    "timestamp": 1764234213245,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-memory-1764235145192",
-    "type": "memory",
-    "success": true,
-    "duration": 924.891615,
-    "timestamp": 1764235146117,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-memory-1764235147551",
-    "type": "memory",
-    "success": true,
-    "duration": 283.90437,
-    "timestamp": 1764235147835,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-memory-1764235160442",
-    "type": "memory",
-    "success": true,
-    "duration": 308.684624,
-    "timestamp": 1764235160751,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-memory-1764235182781",
-    "type": "memory",
-    "success": true,
-    "duration": 269.77893700000004,
-    "timestamp": 1764235183051,
-    "metadata": {}
-  },
-  {
-    "id": "cmd-memory-1764235184645",
-    "type": "memory",
-    "success": true,
-    "duration": 245.94104400000003,
-    "timestamp": 1764235184891,
+    "duration": 30.409807999999998,
+    "timestamp": 1764239611359,
     "metadata": {}
   }
 ]
