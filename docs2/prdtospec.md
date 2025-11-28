@@ -1,6 +1,6 @@
 # AI-Agent Specification Development Guide
 
-## A Complete Framework for Translating PRDs into Machine-Executable Specifications
+## A Complete Framework for Translating PRDs into Machine-Executable Specifications and Sequential Tasks
 
 ---
 
@@ -31,6 +31,16 @@ Level 5: Context Files (live project state)
 ```
 
 A PRD feeds into Levels 2-4. The Constitution and Context Files wrap around them to provide guardrails and memory.
+
+### 1.3 The Two-Phase Workflow
+
+This framework operates in two distinct phases:
+
+**Phase A: Specification Creation** — Transform PRDs into complete, detailed specifications (Functional → Technical). This phase is about understanding and documenting *what* to build.
+
+**Phase B: Task Generation** — Once specifications are complete and approved, decompose them into atomic, sequentially-executable tasks. This phase transforms specifications into a *deterministic assembly line* where completing tasks in order guarantees full implementation.
+
+Both phases are essential. Specifications without tasks leave implementation to chance. Tasks without specifications lack the context needed for correct implementation.
 
 ---
 
@@ -142,8 +152,9 @@ project-root/
 │   │   ├── data-models.md
 │   │   └── api-contracts.md
 │   └── tasks/
-│       ├── _index.md
-│       └── [task-id].md
+│       ├── _index.md             # Task manifest with dependency graph
+│       ├── _traceability.md      # Coverage matrix
+│       └── TASK-[DOMAIN]-[###].md
 └── docs/
     └── diagrams/
         └── architecture.mmd       # Mermaid source files
@@ -633,109 +644,399 @@ Do not await email delivery in registration flow.
 </technical_spec>
 ```
 
-### 3.5 Task Specification Template
+---
 
-Tasks are atomic work units that an AI agent can complete in a single session. They should be small enough to fit in context but complete enough to be independently testable.
+## Part 4: Task Generation — The Deterministic Assembly Line
+
+> **CRITICAL:** This section applies AFTER all Functional and Technical Specifications are complete and approved. Do not generate tasks until specs are finalized. Tasks are the *output* of specifications, not a replacement for them.
+
+### 4.1 The Core Principle: Inside-Out, Bottom-Up
+
+**Do not slice by "Feature."** Slice by **Architectural Layer.**
+
+If you give an agent a task to "Build Login," it will try to write the Database Model, Service, and Controller all at once. This leads to:
+
+- Context overflow and hallucinated imports
+- References to files that don't exist yet
+- Tangled dependencies that break subsequent tasks
+
+Instead, enforce this **strict generation order** for every feature:
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  LAYER 1: DATA & TYPES (The Foundation)                            │
+│  Source: <data_models> and DTOs from <api_contracts>               │
+│  Output: Database migrations, ORM entities, TypeScript interfaces  │
+│  Why: Zero dependencies. Must exist before anything can import.    │
+└─────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  LAYER 2: PURE BUSINESS LOGIC (The Core)                           │
+│  Source: <component_contracts> (Service Layer)                     │
+│  Output: Service classes, business logic, Unit Tests               │
+│  Why: Depends on Layer 1, but not on HTTP/Controllers.             │
+│       Easy to unit test in isolation.                              │
+└─────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│  LAYER 3: INTERFACE & EXPOSURE (The Surface)                       │
+│  Source: <api_contracts> (Controllers/Resolvers)                   │
+│  Output: Controllers, Routes, Integration Tests                    │
+│  Why: Depends on Layer 2. Wires everything together.               │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+**The Iron Rule:** Task N cannot reference any file created in Task N+1 or later.
+
+### 4.2 The Task Generator Prompt
+
+**Do not write tasks manually.** Use an LLM to read your technical specification and generate atomic task specifications.
+
+Here is the optimal prompt structure for your "Architect Agent":
+
+```xml
+<task_generation_prompt>
+You are the Lead Architect. Read the technical specification at specs/technical/[domain].md.
+
+Break this technical spec into a series of atomic task_spec files.
+
+<rules_for_task_generation>
+
+<granularity>
+One task = One conceptual change.
+Examples:
+- "Create User Entity and Migration" = one task
+- "Implement RegisterUser Service Method" = one task  
+- "Create Registration Endpoint with Tests" = one task
+
+Do NOT combine: "Build entire auth system" is NOT a valid task.
+</granularity>
+
+<dependency_ordering>
+You MUST follow strict dependency order:
+1. Task N cannot reference a file created in Task N+1
+2. Database models and types FIRST
+3. Repository/Service layer SECOND  
+4. Controllers/API layer LAST
+
+Within each layer, order by dependency:
+- Base types before types that extend them
+- Shared utilities before components that use them
+</dependency_ordering>
+
+<testing_requirement>
+Every Logic or API task MUST include creation of corresponding test file.
+Tests are not separate tasks—they ship with the implementation.
+</testing_requirement>
+
+<naming_convention>
+Sequence explicitly: TASK-[DOMAIN]-[###]
+Example: TASK-AUTH-001, TASK-AUTH-002, TASK-AUTH-003
+</naming_convention>
+
+<layer_assignment>
+Tag each task with its layer:
+- layer="foundation" (data models, types, migrations)
+- layer="logic" (services, business rules)
+- layer="surface" (controllers, routes, UI)
+</layer_assignment>
+
+</rules_for_task_generation>
+
+<output_format>
+Generate the full content for each sequential task using the Task Specification Template.
+Include all required fields, especially:
+- input_context_files (what the agent reads)
+- definition_of_done (exact signatures and constraints)
+- files_to_create and files_to_modify
+</output_format>
+
+</task_generation_prompt>
+```
+
+### 4.3 Enhanced Task Specification Template
+
+Each task is an atomic work unit that an AI agent can complete in a single session. The template includes two critical additions for sequential execution.
 
 ```xml
 <task_spec id="TASK-AUTH-001" version="1.0">
 
 <metadata>
-  <title>Implement User Registration Endpoint</title>
+  <title>Create User Entity and Database Migration</title>
   <status>ready</status>
+  <layer>foundation</layer>
+  <sequence>1</sequence>
   <implements>
     <requirement_ref>REQ-AUTH-01</requirement_ref>
     <requirement_ref>REQ-AUTH-02</requirement_ref>
   </implements>
   <depends_on>
-    <task_ref>TASK-DB-001</task_ref> <!-- Database schema setup -->
+    <!-- Empty for first task, or reference prior tasks -->
   </depends_on>
-  <estimated_complexity>medium</estimated_complexity>
+  <estimated_complexity>low</estimated_complexity>
 </metadata>
 
 <context>
-This task creates the user registration endpoint. The database schema 
-(TASK-DB-001) is already implemented. Email service integration will be 
-handled in TASK-AUTH-003.
+This is the foundational task for the authentication system. It creates 
+the User entity and database migration that all subsequent auth tasks 
+will depend on. No prior auth tasks exist.
 </context>
 
+<!-- NEW: Explicit Input Context -->
+<input_context_files>
+  <!-- List ONLY the files the agent needs to read for THIS task -->
+  <!-- Saves tokens and reduces confusion -->
+  <file purpose="schema_definition">specs/technical/auth.md#data_models</file>
+  <file purpose="naming_conventions">specs/constitution.md#coding_standards</file>
+  <file purpose="existing_entities">src/database/entities/</file>
+</input_context_files>
+
 <prerequisites>
-  <check>User table exists in database</check>
-  <check>bcrypt library is installed</check>
-  <check>Validation middleware is configured</check>
+  <check>Database connection configured</check>
+  <check>TypeORM installed and configured</check>
+  <check>Migration runner available</check>
 </prerequisites>
 
 <scope>
   <in_scope>
-    - Create RegisterDto with validation decorators
-    - Create AuthService.registerUser method
-    - Create POST /auth/register endpoint
-    - Create unit tests for registration logic
-    - Create integration test for endpoint
+    - Create User entity matching technical spec
+    - Create database migration for users table
+    - Create TypeScript interfaces for User
   </in_scope>
   <out_of_scope>
-    - Email sending (TASK-AUTH-003)
-    - Email verification flow (TASK-AUTH-004)
-    - Rate limiting (TASK-AUTH-008)
+    - Session entity (TASK-AUTH-002)
+    - AuthService (TASK-AUTH-003)
+    - Any API endpoints (TASK-AUTH-005+)
   </out_of_scope>
 </scope>
 
+<!-- NEW: Definition of Done with Signature Contract -->
+<definition_of_done>
+  <signatures>
+    <!-- Exact signatures the agent must produce -->
+    <signature file="src/database/entities/user.entity.ts">
+      export class User {
+        id: string;
+        email: string;
+        passwordHash: string;
+        name: string;
+        emailVerified: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+        lockedUntil: Date | null;
+        failedLoginAttempts: number;
+      }
+    </signature>
+    <signature file="src/types/user.types.ts">
+      export interface IUser { ... }
+      export type CreateUserDto = Pick&lt;IUser, 'email' | 'name'&gt; & { password: string };
+    </signature>
+  </signatures>
+  
+  <constraints>
+    - Must use UUID for primary key (not auto-increment)
+    - Must include all fields from technical spec data model
+    - Must NOT use 'any' type anywhere
+    - Must follow naming conventions from constitution
+    - Migration must be reversible (include down() method)
+  </constraints>
+  
+  <verification>
+    - Migration runs without error: npm run migration:run
+    - Migration reverts without error: npm run migration:revert
+    - Entity compiles without TypeScript errors
+  </verification>
+</definition_of_done>
+
 <pseudo_code>
-<!-- AI must generate pseudo-code for approval before implementation -->
+User Entity (src/database/entities/user.entity.ts):
+  @Entity('users')
+  class User:
+    @PrimaryGeneratedColumn('uuid') id
+    @Column({ unique: true }) email
+    @Column() passwordHash  // Note: field name, not password_hash
+    @Column() name
+    @Column({ default: false }) emailVerified
+    @CreateDateColumn() createdAt
+    @UpdateDateColumn() updatedAt
+    @Column({ nullable: true }) lockedUntil
+    @Column({ default: 0 }) failedLoginAttempts
 
-RegisterDto:
-  - email: string, @IsEmail(), @MaxLength(255)
-  - password: string, @MinLength(12), @IsStrongPassword()
-  - name: string, @MinLength(1), @MaxLength(100)
-
-AuthService.registerUser(dto):
-  1. Check if email exists in database
-     - If exists: throw ConflictError
-  2. Hash password using bcrypt with cost 12
-  3. Create user record with email_verified = false
-  4. Return user without password_hash field
-
-AuthController.register(dto):
-  1. Call authService.registerUser(dto)
-  2. Return 201 with user data and success message
-  3. Catch ConflictError -> return 409
-  4. Catch ValidationError -> return 400
+Migration:
+  up(): CREATE TABLE users with all columns, unique index on email
+  down(): DROP TABLE users
 </pseudo_code>
 
 <files_to_create>
-  <file path="src/auth/dto/register.dto.ts">RegisterDto class</file>
-  <file path="src/auth/auth.service.ts">AuthService (or add to existing)</file>
-  <file path="src/auth/auth.controller.ts">AuthController (or add to existing)</file>
-  <file path="src/auth/auth.service.spec.ts">Unit tests</file>
-  <file path="src/auth/auth.controller.spec.ts">Integration tests</file>
+  <file path="src/database/entities/user.entity.ts">User entity class with TypeORM decorators</file>
+  <file path="src/types/user.types.ts">TypeScript interfaces and DTOs</file>
+  <file path="src/database/migrations/YYYYMMDDHHMMSS-CreateUsersTable.ts">Migration file</file>
 </files_to_create>
 
 <files_to_modify>
-  <file path="src/app.module.ts">Import AuthModule</file>
+  <file path="src/database/entities/index.ts">Export User entity</file>
 </files_to_modify>
 
 <validation_criteria>
-  <criterion>All tests pass</criterion>
-  <criterion>POST /auth/register returns 201 for valid input</criterion>
-  <criterion>POST /auth/register returns 409 for duplicate email</criterion>
-  <criterion>POST /auth/register returns 400 for invalid input</criterion>
-  <criterion>Password is not stored in plain text</criterion>
-  <criterion>Code follows constitution standards</criterion>
+  <criterion>Migration executes successfully</criterion>
+  <criterion>Migration can be reverted</criterion>
+  <criterion>User entity matches technical spec exactly</criterion>
+  <criterion>No TypeScript compilation errors</criterion>
+  <criterion>All fields have correct types and constraints</criterion>
 </validation_criteria>
 
 <test_commands>
-  <command>npm run test -- --grep "AuthService"</command>
-  <command>npm run test:e2e -- --grep "register"</command>
+  <command>npm run migration:run</command>
+  <command>npm run migration:revert</command>
+  <command>npm run type-check</command>
 </test_commands>
 
 </task_spec>
 ```
 
+### 4.4 The Traceability Matrix
+
+**The most common failure mode is missing a requirement.** Before approving generated tasks, run a Coverage Check.
+
+Create `specs/tasks/_traceability.md`:
+
+```markdown
+# Task Traceability Matrix
+
+## Coverage Check: SPEC-AUTH → TASK-AUTH-*
+
+| Tech Spec Item | Type | Covered by Task ID | Status |
+|----------------|------|-------------------|--------|
+| Model: User | data_model | TASK-AUTH-001 | ✓ |
+| Model: Session | data_model | TASK-AUTH-002 | ✓ |
+| Interface: IUser | type | TASK-AUTH-001 | ✓ |
+| Interface: ISession | type | TASK-AUTH-002 | ✓ |
+| DTO: RegisterDto | type | TASK-AUTH-001 | ✓ |
+| Service: registerUser | method | TASK-AUTH-003 | ✓ |
+| Service: authenticateUser | method | TASK-AUTH-004 | ✓ |
+| API: POST /auth/register | endpoint | TASK-AUTH-005 | ✓ |
+| API: POST /auth/login | endpoint | TASK-AUTH-006 | ✓ |
+| Error: ERR-AUTH-01 | error_state | TASK-AUTH-005 | ✓ |
+| Error: ERR-AUTH-02 | error_state | TASK-AUTH-006 | ✓ |
+| Error: ERR-AUTH-03 | error_state | TASK-AUTH-006 | ✓ |
+
+## Uncovered Items
+
+| Tech Spec Item | Type | Notes |
+|----------------|------|-------|
+| (none) | | |
+
+## Validation
+
+- [x] All data models have corresponding tasks
+- [x] All service methods have corresponding tasks
+- [x] All API endpoints have corresponding tasks
+- [x] All error states are handled in tasks
+- [x] Task dependencies form valid DAG (no cycles)
+- [x] Layer ordering is correct (foundation → logic → surface)
+```
+
+**If the "Covered by Task ID" column is empty for ANY item in your Technical Spec, the task generation is INCOMPLETE.**
+
+### 4.5 Task Dependency Graph
+
+Create `specs/tasks/_index.md`:
+
+```markdown
+# Task Index: Authentication Domain
+
+## Dependency Graph
+
+```mermaid
+graph TD
+    subgraph Foundation Layer
+        T001[TASK-AUTH-001<br/>User Entity]
+        T002[TASK-AUTH-002<br/>Session Entity]
+    end
+    
+    subgraph Logic Layer
+        T003[TASK-AUTH-003<br/>Register Service]
+        T004[TASK-AUTH-004<br/>Auth Service]
+    end
+    
+    subgraph Surface Layer
+        T005[TASK-AUTH-005<br/>Register Endpoint]
+        T006[TASK-AUTH-006<br/>Login Endpoint]
+    end
+    
+    T001 --> T003
+    T002 --> T004
+    T003 --> T005
+    T001 --> T004
+    T004 --> T006
+```
+
+## Execution Order
+
+Execute tasks in this exact sequence:
+
+| Order | Task ID | Title | Layer | Depends On |
+|-------|---------|-------|-------|------------|
+| 1 | TASK-AUTH-001 | Create User Entity | foundation | — |
+| 2 | TASK-AUTH-002 | Create Session Entity | foundation | TASK-AUTH-001 |
+| 3 | TASK-AUTH-003 | Implement Register Service | logic | TASK-AUTH-001 |
+| 4 | TASK-AUTH-004 | Implement Auth Service | logic | TASK-AUTH-001, TASK-AUTH-002 |
+| 5 | TASK-AUTH-005 | Create Register Endpoint | surface | TASK-AUTH-003 |
+| 6 | TASK-AUTH-006 | Create Login Endpoint | surface | TASK-AUTH-004 |
+
+## Status
+
+| Task ID | Status | Completed | Verified |
+|---------|--------|-----------|----------|
+| TASK-AUTH-001 | ✓ Complete | 2024-01-15 | ✓ |
+| TASK-AUTH-002 | ✓ Complete | 2024-01-15 | ✓ |
+| TASK-AUTH-003 | 🔄 In Progress | — | — |
+| TASK-AUTH-004 | ⏳ Blocked | — | — |
+| TASK-AUTH-005 | ⏳ Waiting | — | — |
+| TASK-AUTH-006 | ⏳ Waiting | — | — |
+
+**Progress: 2/6 tasks complete (33%)**
+```
+
+### 4.6 Task Generation Checklist
+
+Before executing any tasks, verify:
+
+**Completeness**
+- [ ] All items in technical spec have corresponding tasks
+- [ ] Traceability matrix has no empty cells
+- [ ] Every service method has a task
+- [ ] Every API endpoint has a task
+- [ ] All error states are covered
+
+**Ordering**
+- [ ] Foundation layer tasks come first
+- [ ] Logic layer tasks follow foundation
+- [ ] Surface layer tasks come last
+- [ ] Within layers, dependencies are satisfied
+- [ ] No task references files created in later tasks
+
+**Quality**
+- [ ] Each task is truly atomic (one conceptual change)
+- [ ] Input context files are minimal and correct
+- [ ] Definition of done includes exact signatures
+- [ ] Constraints reference constitution rules
+- [ ] Test commands are specified
+
+**Structure**
+- [ ] Tasks are named TASK-[DOMAIN]-[###]
+- [ ] Sequence numbers are gapless
+- [ ] Dependency graph has no cycles
+- [ ] _index.md is complete
+- [ ] _traceability.md passes all checks
+
 ---
 
-## Part 4: Context Files (The Memory Bank)
+## Part 5: Context Files (The Memory Bank)
 
-### 4.1 Active Context File
+### 5.1 Active Context File
 
 This file represents the AI's "working memory" for the current session. It must be read at session start and updated at session end.
 
@@ -774,7 +1075,7 @@ Brief description of what we're working on right now.
 Any observations, attempted approaches, or context that should persist.
 ```
 
-### 4.2 Decision Log
+### 5.2 Decision Log
 
 Immutable record of architectural and design decisions. Prevents the AI from re-litigating settled debates.
 
@@ -807,7 +1108,7 @@ Immutable record of architectural and design decisions. Prevents the AI from re-
 ---
 ```
 
-### 4.3 Progress Tracker
+### 5.3 Progress Tracker
 
 High-level roadmap with completion status.
 
@@ -831,9 +1132,9 @@ High-level roadmap with completion status.
 
 ---
 
-## Part 5: AI Agent Instructions
+## Part 6: AI Agent Instructions
 
-### 5.1 Agent Workflow Protocol
+### 6.1 Agent Workflow Protocol
 
 Include these instructions in your system prompt or as a dedicated file the agent reads first.
 
@@ -850,6 +1151,18 @@ Before any implementation work:
 6. Read the specific task spec
 7. Verify prerequisites are met
 </session_start>
+
+<task_execution>
+For each task:
+1. Read ONLY the files listed in <input_context_files>
+2. Review <definition_of_done> for exact signatures required
+3. Verify you understand the <constraints>
+4. Generate pseudo-code if not already approved
+5. Implement matching the exact signatures specified
+6. Create tests as part of the same task (not separately)
+7. Run all <test_commands>
+8. Verify against <validation_criteria>
+</task_execution>
 
 <before_coding>
 For any logic more complex than 10 lines:
@@ -869,6 +1182,14 @@ Before modifying any file:
 2. Understand its current structure and patterns
 3. Make minimal changes to achieve the goal
 </file_operations>
+
+<dependency_enforcement>
+CRITICAL: Never reference files from future tasks.
+Before importing anything:
+1. Check if the file exists NOW
+2. Check if the file was created in a PREVIOUS task
+3. If the file is from a FUTURE task → STOP and report blocker
+</dependency_enforcement>
 
 <code_comments>
 When writing code that implements a requirement:
@@ -891,7 +1212,8 @@ Before ending session:
    - Blockers encountered
    - Next steps
 2. Update .ai/progress.md if tasks completed
-3. If architectural decisions were made, add to decisionLog.md
+3. Update specs/tasks/_index.md with task status
+4. If architectural decisions were made, add to decisionLog.md
 </session_end>
 
 <error_handling>
@@ -905,41 +1227,55 @@ If you encounter ambiguity:
 </agent_protocol>
 ```
 
-### 5.2 Quality Gates
+### 6.2 Quality Gates
 
 Define checkpoints where human review is required.
 
 ```xml
 <quality_gates>
 
-<gate id="SPEC_REVIEW" trigger="before_planning">
-  <description>Human reviews functional spec before technical planning</description>
+<gate id="SPEC_REVIEW" trigger="before_task_generation">
+  <description>Human reviews functional and technical specs before task generation</description>
   <checklist>
     - All user stories have acceptance criteria
     - Requirements are traceable to stories
     - Edge cases are documented
     - No ambiguous language
+    - Technical spec has complete data models
+    - API contracts are fully defined
+  </checklist>
+</gate>
+
+<gate id="TASK_REVIEW" trigger="after_task_generation">
+  <description>Human reviews generated tasks before execution begins</description>
+  <checklist>
+    - Traceability matrix is complete (no gaps)
+    - Dependency order is correct
+    - Layer sequencing is valid
+    - Each task is truly atomic
+    - Definition of done is precise
   </checklist>
 </gate>
 
 <gate id="DESIGN_REVIEW" trigger="before_implementation">
-  <description>Human reviews technical design before coding</description>
+  <description>Human reviews pseudo-code before coding</description>
   <checklist>
-    - Architecture diagram is accurate
-    - Data models are complete
-    - API contracts are defined
-    - Pseudo-code is approved
+    - Pseudo-code matches technical spec
+    - Approach follows constitution
+    - No premature optimization
+    - Error handling is considered
   </checklist>
 </gate>
 
-<gate id="CODE_REVIEW" trigger="after_implementation">
-  <description>Human reviews generated code before merge</description>
+<gate id="CODE_REVIEW" trigger="after_task_completion">
+  <description>Human reviews generated code before marking complete</description>
   <checklist>
     - Code follows constitution
     - All tests pass
     - No hardcoded values
     - Error handling is complete
     - Security requirements met
+    - Matches definition_of_done signatures exactly
   </checklist>
 </gate>
 
@@ -948,9 +1284,9 @@ Define checkpoints where human review is required.
 
 ---
 
-## Part 6: Validation and Testing
+## Part 7: Validation and Testing
 
-### 6.1 Self-Verification Protocol
+### 7.1 Self-Verification Protocol
 
 AI agents should verify their own work before presenting it.
 
@@ -985,22 +1321,31 @@ Verify against anti-patterns:
 - No magic numbers
 </step>
 
+<step name="signature_compliance">
+Verify against definition_of_done:
+- All required signatures exactly match
+- All constraints satisfied
+- All verification commands pass
+</step>
+
 <verification_report>
 Present results in this format:
 ```
-## Verification Report
+## Verification Report: TASK-XXX-###
 - Lint: ✓ Pass / ✗ X issues (fixed/remaining)
 - Types: ✓ Pass / ✗ X errors
 - Unit Tests: X/Y passing
 - Integration Tests: X/Y passing
 - Constitution: ✓ Compliant / ✗ Violations listed
+- Signatures: ✓ Match / ✗ Deviations listed
+- Constraints: ✓ Satisfied / ✗ Violations listed
 ```
 </verification_report>
 
 </self_verification>
 ```
 
-### 6.2 Acceptance Testing Template
+### 7.2 Acceptance Testing Template
 
 For human reviewers to validate completed work.
 
@@ -1011,6 +1356,11 @@ For human reviewers to validate completed work.
 | Criterion | Expected | Actual | Pass? |
 |-----------|----------|--------|-------|
 | [From task spec] | | | |
+
+## Signature Verification
+| Required Signature | Implemented | Match? |
+|--------------------|-------------|--------|
+| [From definition_of_done] | | |
 
 ## Code Quality
 - [ ] Follows naming conventions
@@ -1045,9 +1395,9 @@ For human reviewers to validate completed work.
 
 ---
 
-## Part 7: Putting It All Together
+## Part 8: Putting It All Together
 
-### 7.1 Complete Workflow
+### 8.1 Complete Workflow
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -1088,26 +1438,34 @@ For human reviewers to validate completed work.
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│   PHASE 4: TASK DECOMPOSITION                                   │
-│   - Break into atomic tasks                                      │
-│   - Define dependencies                                          │
-│   - Create task specs with pseudo-code                           │
-│   - Establish validation criteria                                │
-│   Output: Task Specs                                             │
+│   PHASE 4: TASK GENERATION (NEW - DETERMINISTIC ASSEMBLY)       │
+│   - Run Task Generator Prompt against tech spec                  │
+│   - Apply Inside-Out, Bottom-Up slicing                          │
+│   - Generate atomic tasks with input_context_files               │
+│   - Include definition_of_done with exact signatures             │
+│   - Create dependency graph                                      │
+│   - Build traceability matrix                                    │
+│   - Verify coverage (no gaps)                                    │
+│   Output: Task Specs (10-15 per domain typically)                │
+│   ★ QUALITY GATE: Task Review                                    │
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│   PHASE 5: AI IMPLEMENTATION                                    │
-│   For each task:                                                │
-│   1. Agent reads context files                                   │
-│   2. Agent reads relevant specs                                  │
-│   3. Agent proposes pseudo-code                                  │
+│   PHASE 5: SEQUENTIAL EXECUTION                                 │
+│   For each task IN ORDER:                                        │
+│   1. Agent reads ONLY input_context_files                        │
+│   2. Agent reads task spec                                       │
+│   3. Agent proposes pseudo-code (if not pre-approved)            │
 │   4. Human approves approach                                     │
-│   5. Agent implements with tests                                 │
-│   6. Agent runs self-verification                                │
-│   7. Agent updates context files                                 │
+│   5. Agent implements matching definition_of_done                │
+│   6. Agent creates tests (same task, not separate)               │
+│   7. Agent runs self-verification                                │
+│   8. Agent updates context files                                 │
 │   ★ QUALITY GATE: Code Review                                    │
+│                                                                 │
+│   ⚠️  TASK N+1 CANNOT START UNTIL TASK N IS COMPLETE             │
+│   ⚠️  NO FILE CAN BE REFERENCED BEFORE IT EXISTS                 │
 └─────────────────────────────────────────────────────────────────┘
                                │
                                ▼
@@ -1116,10 +1474,29 @@ For human reviewers to validate completed work.
 │   - Human validates against acceptance criteria                  │
 │   - Integration testing                                          │
 │   - Merge and deploy                                            │
+│                                                                 │
+│   ✓ IF ALL TASKS COMPLETE IN ORDER → SPEC FULLY IMPLEMENTED     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.2 Checklist: Is Your Spec AI-Ready?
+### 8.2 The Guarantee
+
+When this framework is followed correctly:
+
+> **If all tasks are completed in sequence, the full specification is fully implemented into the codebase.**
+
+This works because:
+
+1. **Specifications capture complete intent** — Nothing is left to interpretation
+2. **Tasks cover 100% of specifications** — Traceability matrix proves it
+3. **Tasks are atomic** — Each is small enough to complete correctly
+4. **Dependencies are explicit** — No task can fail due to missing imports
+5. **Layer ordering is enforced** — Foundation → Logic → Surface
+6. **Definition of done is precise** — Exact signatures leave no ambiguity
+
+This transforms implementation from a creative writing exercise into a **deterministic assembly line**.
+
+### 8.3 Checklist: Is Your Spec AI-Ready?
 
 Use this checklist before handing specifications to an AI agent:
 
@@ -1139,6 +1516,7 @@ Use this checklist before handing specifications to an AI agent:
 - [ ] Every requirement traces to a user story
 - [ ] Every task traces to requirements
 - [ ] Test cases reference requirements they validate
+- [ ] Traceability matrix has no gaps
 
 **Constraints**
 - [ ] Anti-patterns documented
@@ -1156,6 +1534,14 @@ Use this checklist before handing specifications to an AI agent:
 - [ ] Validation criteria in each task spec
 - [ ] Test commands specified
 - [ ] Self-verification protocol included
+
+**Task Quality** (NEW)
+- [ ] Tasks generated from technical spec (not manually)
+- [ ] Inside-Out, Bottom-Up slicing applied
+- [ ] input_context_files specified in each task
+- [ ] definition_of_done includes exact signatures
+- [ ] Dependency graph has no cycles
+- [ ] All tech spec items covered in traceability matrix
 
 ---
 
@@ -1233,6 +1619,43 @@ Mock network delay > 30s, verify timeout error displayed
 </bug_spec>
 ```
 
+### Minimal Task Spec (for simple tasks)
+
+```xml
+<task_spec id="TASK-FEAT-001" version="1.0">
+<metadata>
+  <title>Create ExportButton Component</title>
+  <layer>surface</layer>
+  <sequence>1</sequence>
+  <implements><requirement_ref>REQ-001</requirement_ref></implements>
+</metadata>
+
+<input_context_files>
+  <file>src/components/DataTable/index.tsx</file>
+</input_context_files>
+
+<definition_of_done>
+  <signature>
+    export const ExportButton: React.FC&lt;{ data: TableRow[]; tableName: string }&gt;
+  </signature>
+  <constraints>
+    - Button disabled when data.length === 0
+    - Uses existing Button component from design system
+  </constraints>
+</definition_of_done>
+
+<files_to_create>
+  <file path="src/components/DataTable/ExportButton.tsx">Component</file>
+  <file path="src/components/DataTable/ExportButton.test.tsx">Tests</file>
+</files_to_create>
+
+<validation_criteria>
+  <criterion>Tests pass</criterion>
+  <criterion>Button renders correctly</criterion>
+</validation_criteria>
+</task_spec>
+```
+
 ---
 
 ## Appendix B: Common Pitfalls Checklist
@@ -1266,3 +1689,61 @@ Review this before finalizing any specification:
 - [ ] "Should work correctly" → Define what "correctly" means
 - [ ] Metrics attached to all performance requirements
 
+**Task Generation Failures** (NEW)
+- [ ] "Build Login" → Too large, slice into 5-10 atomic tasks
+- [ ] Task references future file → Reorder dependencies
+- [ ] Missing from traceability matrix → Add task or document exclusion
+- [ ] No definition_of_done → Agent will hallucinate signatures
+- [ ] Mixed layers in one task → Split by foundation/logic/surface
+
+---
+
+## Appendix C: Task Generation Examples
+
+### Example: Complete Task Sequence for Auth
+
+Given a technical spec for authentication, here's how the tasks should be generated:
+
+```
+TASK-AUTH-001 (foundation): Create User Entity and Migration
+TASK-AUTH-002 (foundation): Create Session Entity and Migration  
+TASK-AUTH-003 (foundation): Create Auth DTOs and Interfaces
+TASK-AUTH-004 (logic): Implement Password Hashing Utility
+TASK-AUTH-005 (logic): Implement RegisterUser Service Method
+TASK-AUTH-006 (logic): Implement AuthenticateUser Service Method
+TASK-AUTH-007 (logic): Implement Session Management Service
+TASK-AUTH-008 (surface): Create Registration Endpoint
+TASK-AUTH-009 (surface): Create Login Endpoint
+TASK-AUTH-010 (surface): Create Logout Endpoint
+TASK-AUTH-011 (surface): Create Auth Middleware
+```
+
+Note how:
+- Foundation tasks (entities, DTOs) come first
+- Logic tasks (services) come second and import from foundation
+- Surface tasks (endpoints) come last and import from both layers
+- Each task is a single conceptual change
+- Tests are included with each task, not separate
+
+### Example: Traceability Matrix Check
+
+After generating tasks, verify coverage:
+
+| Spec Item | Task | ✓ |
+|-----------|------|---|
+| User model | TASK-AUTH-001 | ✓ |
+| Session model | TASK-AUTH-002 | ✓ |
+| RegisterDto | TASK-AUTH-003 | ✓ |
+| LoginDto | TASK-AUTH-003 | ✓ |
+| bcrypt hashing | TASK-AUTH-004 | ✓ |
+| registerUser() | TASK-AUTH-005 | ✓ |
+| authenticateUser() | TASK-AUTH-006 | ✓ |
+| createSession() | TASK-AUTH-007 | ✓ |
+| POST /auth/register | TASK-AUTH-008 | ✓ |
+| POST /auth/login | TASK-AUTH-009 | ✓ |
+| POST /auth/logout | TASK-AUTH-010 | ✓ |
+| ERR-AUTH-01 | TASK-AUTH-008 | ✓ |
+| ERR-AUTH-02 | TASK-AUTH-009 | ✓ |
+| ERR-AUTH-03 | TASK-AUTH-009 | ✓ |
+
+**All items covered. Task generation is complete.**
