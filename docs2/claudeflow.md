@@ -526,3 +526,72 @@ Every subagent MUST verify before responding:
 - [ ] Main agent can route future work efficiently
 
 **Result**: Main Claude Code can orchestrate subagents with surgical precision, directing them to exact memory locations without context overload.
+
+# Serena Quick Reference
+
+Serena is an MCP semantic code tool. Use symbols, not raw files.
+
+## Golden Rules
+
+1. **Never read whole files** - use `get_symbols_overview` first
+2. **Symbol tools before regex** - only use regex for small edits
+3. **Narrow searches** - always pass `relative_path` when known
+4. **Read bodies last** - `include_body=True` only when needed
+
+## Core Tools (Use These)
+
+| Tool | Purpose | Example |
+|------|---------|---------|
+| `get_symbols_overview` | See file structure | First step for any file |
+| `find_symbol` | Find by name path | `"Class/method"`, depth=1 |
+| `replace_symbol_body` | Replace whole symbol | Methods, classes, functions |
+| `replace_regex` | Small edits | Few lines within a symbol |
+| `insert_after_symbol` | Add new code | New methods, functions |
+| `insert_before_symbol` | Add imports | Before first symbol |
+| `find_referencing_symbols` | Find usages | Before refactoring |
+
+## Name Path Syntax
+
+- `method` - any depth
+- `Class/method` - relative path
+- `/Class/method` - absolute (top-level Class)
+- `Foo/__init__` - Python constructor
+
+## Workflow
+
+```
+1. get_symbols_overview("file.py")           # See structure
+2. find_symbol("Class", depth=1)             # See methods (no body)
+3. find_symbol("Class/method", include_body=True)  # Read target only
+4. Edit with replace_symbol_body OR replace_regex
+```
+
+## Editing Decision
+
+- **Whole symbol** → `replace_symbol_body`
+- **Few lines inside symbol** → `replace_regex` with wildcards
+
+## Regex Tips
+
+- Escape: `\(`, `\)`, `\{`, `\}`
+- Use `.*?` wildcards for large spans
+- Match unique context if not unique
+- No auto-indent - add it yourself
+
+## Key Parameters
+
+**find_symbol:**
+- `depth`: 0=self, 1=children
+- `include_body`: only when reading
+- `relative_path`: narrow scope
+
+**replace_regex:**
+- `allow_multiple_occurrences`: for global replace
+- Use `\1`, `\2` for capture groups
+
+## Anti-Patterns
+
+- Reading file then using symbol tools on same content
+- `include_body=True` without needing the code
+- Long regexes without wildcards
+- Searching whole codebase without `relative_path`
